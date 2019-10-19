@@ -1,0 +1,16 @@
+html
+  head
+    title Главная страница
+    script(src="/js/axios.min.js")
+  body
+    input(id="hash" type="text", name="hash", placehoder="Введите хеш сборки для запуска")
+    button(id="build_button" onClick="startBuild()") Запустить сборку
+    table#build_table
+      thead
+        tr
+          th Номер сборки
+          th Хеш
+          th Статус
+          th Ссылка
+      tbody
+    script(src="/js/index.js")

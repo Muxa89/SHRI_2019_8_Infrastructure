@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
 
 function getTableRow(build) {
@@ -36,11 +37,26 @@ function fillBuildTable(builds) {
 }
 
 function refresh() {
-  axios.get('/buildState').then(response => {
+  axios.get('/status').then(response => {
     const builds = response.data.builds;
     console.log(builds);
     fillBuildTable(builds);
   });
+}
+
+function startBuild() {
+  const button = document.getElementById('build_button');
+  button.setAttribute('disabled', 'true');
+
+  const hash = document.getElementById('hash').value;
+
+  axios
+    .post('/', {
+      hash,
+    })
+    .then(() => {
+      button.removeAttribute('disabled');
+    });
 }
 
 refresh();
