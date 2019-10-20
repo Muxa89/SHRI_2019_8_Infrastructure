@@ -17,7 +17,7 @@ function getTableRow(build) {
   const link = document.createElement('td');
   link.appendChild(document.createElement('a'));
   link.children[0].innerText = 'Ссылка';
-  link.children[0].setAttribute('href', `/build/${build.buildId}`);
+  link.children[0].setAttribute('href', `/build/${build.id}`);
 
   const row = document.createElement('tr');
   row.appendChild(buildId);
@@ -34,6 +34,10 @@ function fillBuildTable(builds) {
   while (tbody.firstChild) {
     tbody.removeChild(tbody.firstChild);
   }
+
+  builds.sort((a, b) => {
+    return b.id - a.id;
+  });
 
   builds.forEach(build => {
     tbody.appendChild(getTableRow(build));
