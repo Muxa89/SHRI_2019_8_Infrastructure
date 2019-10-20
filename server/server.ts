@@ -1,4 +1,3 @@
-import { resolve } from 'path';
 import * as express from 'express';
 import { Application, Request, Response } from 'express';
 import { config } from './config';
@@ -15,12 +14,23 @@ interface Build {
   state: BuildState;
 }
 
+interface BuildMap {
+  [id: number]: Build;
+}
+
+enum AgentState {
+  PENDING = 'pending',
+  BUILDING = 'building',
+  ERROR = 'error',
+}
+
 interface Agent {
   host: string;
   port: number;
+  state: AgentState;
 }
 
-function initUi(app: Application, builds: Array<Build>): void {
+function initUi(app: Application, builds: BuildMap): void {
   app.set('views', './server/public/templates');
   app.set('view engine', 'pug');
 
@@ -45,35 +55,41 @@ function initUi(app: Application, builds: Array<Build>): void {
   );
 }
 
-function initBackend(app: Application, agents: Array<Agent>): void {
+function initAgentApi(app: Application, agents: Array<Agent>): void {
   app.post('/notify_agent', req => {
-    const params = req.body;
-    agents.push(params);
+    const { host, port } = req.body;
+    agents.push({
+      host,
+      port,
+      state: AgentState.PENDING,
+    });
     console.log(
-      `Agent on ${params.host}:${params.port} successfully registered.`
+      `Agent #${agents.length -
+        1} on ${host}:${port} was successfully registered and is waiting for commands.`
     );
   });
 }
 
-const builds = [
-  {
+const builds = {
+  1: {
+    id: 1,
     hash: '123',
     state: BuildState.SUCCESS,
-    id: 111,
   },
-  {
+  2: {
+    id: 2,
     hash: '223',
     state: BuildState.IN_PROGRESS,
-    id: 222,
   },
-];
+};
 
-const agents = [];
+const agents: Array<Agent> = [];
 
 const app = express();
 app.use(express.json());
 
 initUi(app, builds);
+initAgentApi(app, agents);
 
 app.listen(config.port, () =>
   console.log(`Server is listening on port ${config.port}`)

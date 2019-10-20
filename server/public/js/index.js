@@ -40,7 +40,7 @@ function refresh() {
   axios.get('/status').then(response => {
     const builds = response.data.builds;
     console.log(builds);
-    fillBuildTable(builds);
+    fillBuildTable(Object.values(builds));
   });
 }
 
