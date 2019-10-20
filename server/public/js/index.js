@@ -3,7 +3,7 @@
 
 function getTableRow(build) {
   const buildId = document.createElement('td');
-  buildId.innerText = build.buildId;
+  buildId.innerText = build.id;
 
   const state = document.createElement('td');
   state.innerText = build.state;
