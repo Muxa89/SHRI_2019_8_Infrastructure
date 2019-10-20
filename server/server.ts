@@ -1,8 +1,9 @@
 import * as express from 'express';
-import { Application, Request, Response } from 'express';
+import { Application } from 'express';
 import { config } from './config';
 
 enum BuildState {
+  PENDING = 'pending',
   IN_PROGRESS = 'inProgress',
   SUCCESS = 'success',
   FAILURE = 'failure',
@@ -43,6 +44,26 @@ interface AgentBuild {
   [buildId: number]: Agent;
 }
 
+const queueBuildTask = (() => {
+  let buildIdCounter = 0;
+
+  return (hash: string, builds: BuildMap) => {
+    const buildId = buildIdCounter++;
+
+    const build = {
+      id: buildId,
+      hash: hash,
+      state: BuildState.PENDING,
+      stdout: '',
+      stderr: '',
+    };
+
+    builds[buildId] = build;
+
+    return buildId;
+  };
+})();
+
 function initUi(app: Application, builds: BuildMap): void {
   app.set('views', './server/public/templates');
   app.set('view engine', 'pug');
@@ -57,7 +78,9 @@ function initUi(app: Application, builds: BuildMap): void {
   app.use('/js', express.static('node_modules/axios/dist'));
 
   app.post('/', (req, res) => {
-    console.log(req.body);
+    const hash = req.body.hash;
+    const id = queueBuildTask(hash, builds);
+    console.log(`Build task #${id} for hash "${hash}" scheduled for execution.`);
     res.sendStatus(200);
   });
 
