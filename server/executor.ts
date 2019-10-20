@@ -21,7 +21,7 @@ export interface BuildMap {
 }
 
 export interface BuildResult {
-  id: number;
+  buildId: number;
   state: BuildState;
   stdout: string;
   stderr: string;
@@ -41,6 +41,13 @@ export interface Agent {
 
 export interface AgentBuild {
   [buildId: number]: Agent;
+}
+
+export interface BuildCommand {
+  buildId: number;
+  path: string;
+  hash: string;
+  command: string;
 }
 
 export default class Executor {
@@ -90,11 +97,11 @@ export default class Executor {
   runBuild(agent: Agent, build: Build) {
     axios
       .post(`http://${agent.host}:${agent.port}/build`, {
-        id: build.id,
-        repository: this.path,
+        buildId: build.id,
+        path: this.path,
         hash: build.hash,
-        buildCommand: build.command,
-      })
+        command: build.command,
+      } as BuildCommand)
       .then(() => {
         agent.state = AgentState.BUILDING;
         build.state = BuildState.IN_PROGRESS;
@@ -129,12 +136,8 @@ export default class Executor {
     }
   }
 
-  setBuildResult(
-    buildId: number,
-    state: BuildState,
-    stdout: string,
-    stderr: string
-  ) {
+  setBuildResult(buildResult: BuildResult) {
+    const { buildId, state, stdout, stderr } = buildResult;
     const build = this.builds[buildId];
     build.state = state;
     build.stdout = stdout;
@@ -157,6 +160,6 @@ export default class Executor {
 
   addAgent(host, port) {
     this.agents.push({ host, port, state: AgentState.PENDING });
-    console.log(`Agent running on ${host}:${port} succesfully registered.`);
+    console.log(`Agent running on ${host}:${port} was succesfully registered.`);
   }
 }

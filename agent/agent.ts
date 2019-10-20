@@ -1,25 +1,31 @@
 import * as express from 'express';
 import { config } from './config';
 import axios from 'axios';
-import { BuildState } from '../server/executor';
+import { BuildState, BuildCommand, BuildResult } from '../server/executor';
 
 const app = express();
 app.use(express.json());
 
 app.post('/build', (req, res) => {
-  console.log(`Received build command: ${JSON.stringify(req.body)}`);
+  const command: BuildCommand = req.body;
+  console.log(`Received build command: ${JSON.stringify(command)}`);
   res.sendStatus(200);
-  setTimeout(() => {
-    axios.post(`http://localhost:${config.hostPort}/notify_build_result`, {
-      id: req.body.id,
-      state: BuildState.SUCCESS,
-      stdout: 'Successfull build',
-      stderr: '',
-    });
-  }, 3000);
+
+  run(command)
+    .then((buildResult: BuildResult) => sendBuildResult(buildResult))
+    .catch(stderr =>
+      sendBuildResult({
+        buildId: command.buildId,
+        state: BuildState.FAILURE,
+        stdout: '',
+        stderr: stderr,
+      })
+    );
 });
 
-app.listen(config.port, () => console.log(`Agent started on localhost:${config.port}`));
+app.listen(config.port, () =>
+  console.log(`Agent started on localhost:${config.port}`)
+);
 
 const registration = (() => {
   let registrationCount = 1;
@@ -50,3 +56,24 @@ const registration = (() => {
   };
 })();
 registration();
+
+const run = (command: BuildCommand) =>
+  new Promise((resolve, reject) => {
+    setTimeout(
+      () =>
+        resolve({
+          buildId: command.buildId,
+          state: BuildState.SUCCESS,
+          stdout: 'success',
+          stderr: '',
+        } as BuildResult),
+      3000
+    );
+  });
+
+const sendBuildResult = (buildResult: BuildResult) => {
+  axios.post(
+    `http://localhost:${config.hostPort}/notify_build_result`,
+    buildResult
+  );
+};

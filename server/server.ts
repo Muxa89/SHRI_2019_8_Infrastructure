@@ -1,7 +1,7 @@
 import * as express from 'express';
 import { Application } from 'express';
 import { config } from './config';
-import Executor from './executor';
+import Executor, { BuildResult } from './executor';
 
 function initUi(app: Application, executor: Executor): void {
   app.set('views', './server/public/templates');
@@ -37,8 +37,8 @@ function initAgentApi(app: Application, executor: Executor): void {
   });
 
   app.post('/notify_build_result', (req, res) => {
-    const { id, state, stdout, stderr } = req.body;
-    executor.setBuildResult(id, state, stdout, stderr);
+    const buildResult: BuildResult = req.body;
+    executor.setBuildResult(buildResult);
     res.sendStatus(200);
   });
 }
