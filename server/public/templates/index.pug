@@ -3,14 +3,20 @@ html
     title Главная страница
     script(src="/js/axios.min.js")
   body
-    input(id="hash" type="text", name="hash", placehoder="Введите хеш сборки для запуска")
+    span(style="display: inline-block; width: 100px;") Хеш 
+    input(id="hash" type="text" name="hash")
+    br
+    span(style="display: inline-block; width: 100px;") Команда 
+    input(id="command" type="text" name="command")
+    br
     button(id="build_button" onClick="startBuild()") Запустить сборку
     table#build_table
       thead
         tr
           th Номер сборки
           th Хеш
+          th Команда
           th Статус
-          th Ссылка
+          th Подробности
       tbody
     script(src="/js/index.js")

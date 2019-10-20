@@ -5,11 +5,14 @@ function getTableRow(build) {
   const buildId = document.createElement('td');
   buildId.innerText = build.id;
 
-  const state = document.createElement('td');
-  state.innerText = build.state;
-
   const hash = document.createElement('td');
   hash.innerText = build.hash;
+
+  const command = document.createElement('td');
+  command.innerText = build.command;
+
+  const state = document.createElement('td');
+  state.innerText = build.state;
 
   const link = document.createElement('td');
   link.appendChild(document.createElement('a'));
@@ -19,6 +22,7 @@ function getTableRow(build) {
   const row = document.createElement('tr');
   row.appendChild(buildId);
   row.appendChild(hash);
+  row.appendChild(command);
   row.appendChild(state);
   row.appendChild(link);
 
@@ -49,13 +53,16 @@ function startBuild() {
   button.setAttribute('disabled', 'true');
 
   const hash = document.getElementById('hash').value;
+  const command = document.getElementById('command').value;
 
   axios
     .post('/', {
       hash,
+      command,
     })
     .then(() => {
       button.removeAttribute('disabled');
+      refresh();
     });
 }
 
