@@ -4,7 +4,7 @@ import { config } from './config';
 import Executor, { BuildResult } from './executor';
 
 function initUi(app: Application, executor: Executor): void {
-  app.set('views', './server/public/templates');
+  app.set('views', './public/templates');
   app.set('view engine', 'pug');
 
   app.get('/', (req, res) => res.render('index.pug'));
@@ -21,7 +21,7 @@ function initUi(app: Application, executor: Executor): void {
     })
   );
 
-  app.use('/js', express.static('server/public/js'));
+  app.use('/js', express.static('public/js'));
   app.use('/js', express.static('node_modules/axios/dist'));
 
   app.post('/', (req, res) => {

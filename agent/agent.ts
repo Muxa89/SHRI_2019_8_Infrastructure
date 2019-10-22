@@ -1,5 +1,6 @@
 import { config } from './config';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import * as rimraf from 'rimraf';
 
 import { promises } from 'fs';
 const { mkdtemp } = promises;
@@ -217,21 +218,37 @@ const runCommand = (
   folder: string,
   runResult: RunResult
 ) =>
-  bufferizeSpawn(
-    'BUILD',
-    () => {
-      const commandArgs = command.command.split(' ');
-      if (
-        process.platform === 'win32' &&
-        commandArgs[0].indexOf('.cmd') === -1
-      ) {
-        commandArgs[0] += '.cmd';
-      }
+  command.command !== ''
+    ? bufferizeSpawn(
+        'BUILD',
+        () => {
+          const commandArgs = command.command.split(' ');
+          if (
+            process.platform === 'win32' &&
+            commandArgs[0].indexOf('.cmd') === -1
+          ) {
+            commandArgs[0] += '.cmd';
+          }
 
-      return spawn(commandArgs[0], commandArgs.slice(1, commandArgs.length), {
+          return spawn(
+            commandArgs[0],
+            commandArgs.slice(1, commandArgs.length),
+            {
+              cwd: folder,
+            }
+          );
+        },
+        runResult
+      )
+    : Promise.resolve(runResult);
+
+const runTests = (folder: string, runResult: RunResult) =>
+  bufferizeSpawn(
+    'NPM TEST',
+    () =>
+      spawn(`npm${process.platform === 'win32' ? '.cmd' : ''}`, ['test'], {
         cwd: folder,
-      });
-    },
+      }),
     runResult
   );
 
@@ -245,10 +262,12 @@ const run = (command: BuildCommand) => {
     .then((runResult: RunResult) => gitCheckout(command, tempFolder, runResult))
     .then((runResult: RunResult) => npmInstall(tempFolder, runResult))
     .then((runResult: RunResult) => runCommand(command, tempFolder, runResult))
+    .then((runResult: RunResult) => runTests(tempFolder, runResult))
     .then((runResult: RunResult) => runResultToBuildResult(runResult, command))
-    .catch((runResult: RunResult) =>
-      runResultToBuildResult(runResult, command)
-    );
+    .catch((runResult: RunResult) => runResultToBuildResult(runResult, command))
+    .finally(() => {
+      rimraf(tempFolder, () => {});
+    });
 };
 
 const sendBuildResult = (buildResult: BuildResult) => {

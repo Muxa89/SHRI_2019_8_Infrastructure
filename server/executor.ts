@@ -206,6 +206,7 @@ export default class Executor {
   addAgent(host, port) {
     this.agents.push({ host, port, state: AgentState.PENDING });
     console.log(`Agent running on ${host}:${port} was succesfully registered.`);
+    this.execute();
   }
 
   getAgents() {
