@@ -40,6 +40,10 @@ app.post('/build', (req, res) => {
   run(command).then((buildResult: BuildResult) => sendBuildResult(buildResult));
 });
 
+app.get('/isAlive', (req, res) => {
+  res.sendStatus(200);
+});
+
 app.listen(config.port, () =>
   console.log(`Agent started on localhost:${config.port}`)
 );

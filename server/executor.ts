@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+import { config } from './config';
+
 export enum BuildState {
   PENDING = 'pending',
   IN_PROGRESS = 'inProgress',
@@ -63,6 +65,11 @@ export default class Executor {
     this.agentBuild = {};
     this.path = path;
     this.buildIdCounter = 0;
+
+    setInterval(
+      this.checkAgentsIsAlive.bind(this),
+      config.agentIsAliveCheckInterval
+    );
   }
 
   queueBuildTask(hash: string, command: string) {
@@ -82,6 +89,42 @@ export default class Executor {
     console.log(`Build #${buildId} "${hash}:${command}" queued.`);
 
     this.execute();
+  }
+
+  private getBuildByAgent(agent: Agent): Build {
+    let build = undefined;
+    for (let i = 0; i < Object.keys(this.agentBuild).length; i++) {
+      const buildId = Object.keys(this.agentBuild)[i];
+      const a = this.agentBuild[buildId];
+      if (a.host === agent.host && a.port === agent.port) {
+        build = this.getBuilds(Number(buildId));
+      }
+    }
+    return build;
+  }
+
+  private checkAgentsIsAlive() {
+    this.agents
+      .filter((agent: Agent) => agent.state !== AgentState.ERROR)
+      .forEach(agent =>
+        axios
+          .get(`http://${agent.host}:${agent.port}/isAlive`, {
+            timeout: config.agentIsAliveCheckTimeout,
+          })
+          .catch(() => {
+            console.log(
+              `Agent on ${agent.host}:${agent.port} is not responding.`
+            );
+
+            if (agent.state === AgentState.BUILDING) {
+              const build = this.getBuildByAgent(agent);
+              build.state = BuildState.FAILURE;
+              build.stderr = 'Агент перестал отвечать в процессе сборки';
+            }
+
+            agent.state = AgentState.ERROR;
+          })
+      );
   }
 
   getPendingBuilds() {
@@ -155,7 +198,9 @@ export default class Executor {
   }
 
   getBuilds(buildId?: number) {
-    return buildId !== undefined ? this.builds[buildId] : Object.values(this.builds);
+    return buildId !== undefined
+      ? this.builds[buildId]
+      : Object.values(this.builds);
   }
 
   addAgent(host, port) {
