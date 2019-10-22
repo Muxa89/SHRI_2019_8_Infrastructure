@@ -108,8 +108,9 @@ class StringBuffer {
 const consoleLogAndBuffer = (prefix: string, stringBuffer: StringBuffer) => (
   data: string
 ) => {
-  console.log(`${prefix}: ${data}`);
-  stringBuffer.append(data);
+  const out = `${prefix}: ${data}${data[data.length - 1] !== '\n' ? '\n' : ''}`;
+  console.log(out);
+  stringBuffer.append(out);
 };
 
 const processStream = (stream: Readable, prefix: string) => {
@@ -201,96 +202,53 @@ const gitCheckout = (
     runResult
   );
 
+const npmInstall = (folder: string, runResult: RunResult) =>
+  bufferizeSpawn(
+    'NPM INSTALL',
+    () =>
+      spawn(`npm${process.platform === 'win32' ? '.cmd' : ''}`, ['install'], {
+        cwd: folder,
+      }),
+    runResult
+  );
+
+const runCommand = (
+  command: BuildCommand,
+  folder: string,
+  runResult: RunResult
+) =>
+  bufferizeSpawn(
+    'BUILD',
+    () => {
+      const commandArgs = command.command.split(' ');
+      if (
+        process.platform === 'win32' &&
+        commandArgs[0].indexOf('.cmd') === -1
+      ) {
+        commandArgs[0] += '.cmd';
+      }
+
+      return spawn(commandArgs[0], commandArgs.slice(1, commandArgs.length), {
+        cwd: folder,
+      });
+    },
+    runResult
+  );
+
 const run = (command: BuildCommand) => {
   let tempFolder;
-  return (
-    mkdtemp(`${__dirname}${sep}`)
-      .then(folder => {
-        tempFolder = folder;
-      })
-      .then(() => gitClone(command, tempFolder))
-      .then((runResult: RunResult) =>
-        gitCheckout(command, tempFolder, runResult)
-      )
-      // git checkout
-      // return (
-      //   new Promise((res, rej) => {
-      //     const checkout = spawn('git', ['checkout', command.hash], {
-      //       cwd: command.path,
-      //     });
-
-      //     const [stdout, stderr] = bufferizeChildProcessOutput(
-      //       checkout,
-      //       'CHECKOUT'
-      //     );
-
-      //     checkout.on('close', code => {
-      //       const runResult: RunResult = {
-      //         code,
-      //         stdout,
-      //         stderr,
-      //       };
-
-      //       if (code !== 0) {
-      //         rej(runResult);
-      //       } else {
-      //         res(runResult);
-      //       }
-      //     });
-      //   })
-      //     // run provided command
-      //     .then(
-      //       (runResult: RunResult) =>
-      //         new Promise((res, rej) => {
-      //           const commandArr = command.command.split(' ');
-
-      //           if (process.platform === 'win32') {
-      //             commandArr[0] = `${commandArr[0]}.cmd`;
-      //           }
-
-      //           const build = spawn(
-      //             commandArr[0],
-      //             commandArr.slice(1, commandArr.length),
-      //             {
-      //               cwd: command.path,
-      //             }
-      //           );
-
-      //           const [stdout, stderr] = bufferizeChildProcessOutput(
-      //             build,
-      //             'BUILD'
-      //           );
-
-      //           const newResult = Object.assign({}, runResult);
-
-      //           build.on('close', code => {
-      //             newResult.code = code;
-      //             newResult.stdout.append(stdout.toString());
-      //             newResult.stderr.append(stderr.toString());
-
-      //             if (code !== 0) {
-      //               rej(newResult);
-      //             } else {
-      //               res(newResult);
-      //             }
-      //           });
-
-      //           build.on('error', err => {
-      //             newResult.code = -1;
-      //             newResult.stderr.append(
-      //               `BUILD Error: ${err.name}\n${err.message}\n${err.stack}\n`
-      //             );
-      //             rej(newResult);
-      //           });
-      //         })
-      //     )
-      .then((runResult: RunResult) =>
-        runResultToBuildResult(runResult, command)
-      )
-      .catch((runResult: RunResult) =>
-        runResultToBuildResult(runResult, command)
-      )
-  );
+  return mkdtemp(`${__dirname}${sep}`)
+    .then(folder => {
+      tempFolder = folder;
+    })
+    .then(() => gitClone(command, tempFolder))
+    .then((runResult: RunResult) => gitCheckout(command, tempFolder, runResult))
+    .then((runResult: RunResult) => npmInstall(tempFolder, runResult))
+    .then((runResult: RunResult) => runCommand(command, tempFolder, runResult))
+    .then((runResult: RunResult) => runResultToBuildResult(runResult, command))
+    .catch((runResult: RunResult) =>
+      runResultToBuildResult(runResult, command)
+    );
 };
 
 const sendBuildResult = (buildResult: BuildResult) => {
