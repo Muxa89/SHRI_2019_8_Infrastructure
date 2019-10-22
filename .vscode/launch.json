@@ -7,7 +7,14 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "Launch server",
+      "program": "${workspaceFolder}\\node_modules\\ts-node\\dist\\bin.js",
+      "args": ["server/server.ts"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch agent",
       "program": "${workspaceFolder}\\node_modules\\ts-node\\dist\\bin.js",
       "args": ["agent/agent.ts"]
     }

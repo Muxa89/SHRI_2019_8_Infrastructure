@@ -10,7 +10,9 @@ function initUi(app: Application, executor: Executor): void {
   app.get('/', (req, res) => res.render('index.pug'));
 
   app.get('/build/:buildId', (req, res) =>
-    res.render('build.pug', { buildId: req.params.buildId })
+    res.render('build.pug', {
+      ...executor.getBuilds(Number(req.params.buildId)),
+    })
   );
 
   app.use('/js', express.static('server/public/js'));

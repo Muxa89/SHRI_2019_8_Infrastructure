@@ -52,7 +52,7 @@ function refresh() {
   });
 }
 
-function startBuild() {
+function sendBuildCommand() {
   const button = document.getElementById('build_button');
   button.setAttribute('disabled', 'true');
 

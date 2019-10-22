@@ -154,8 +154,8 @@ export default class Executor {
     this.execute();
   }
 
-  getBuilds() {
-    return Object.values(this.builds);
+  getBuilds(buildId?: number) {
+    return buildId !== undefined ? this.builds[buildId] : Object.values(this.builds);
   }
 
   addAgent(host, port) {

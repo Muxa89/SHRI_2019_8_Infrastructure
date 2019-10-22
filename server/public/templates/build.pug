@@ -1,4 +1,26 @@
 html
   head
-    title= `Сборка ${buildId}`
+    title= `Сборка ${id}`
   body
+    a(href="/") Назад
+    table
+      tr
+        td id
+        td= id
+      tr
+        td Хэш
+        td= hash
+      tr
+        td Команда
+        td= command
+      tr
+        td Статус
+        td= state
+      tr
+        td stdout
+        td
+          pre= stdout
+      tr
+        td stderr
+        td
+          pre= stderr
