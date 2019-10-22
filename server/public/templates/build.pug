@@ -4,23 +4,24 @@ html
   body
     a(href="/") Назад
     table
-      tr
-        td id
-        td= id
-      tr
-        td Хэш
-        td= hash
-      tr
-        td Команда
-        td= command
-      tr
-        td Статус
-        td= state
-      tr
-        td stdout
-        td
-          pre= stdout
-      tr
-        td stderr
-        td
-          pre= stderr
+      tbody(style='vertical-align: top')
+        tr
+          td id
+          td= id
+        tr
+          td Хэш
+          td= hash
+        tr
+          td Команда
+          td= command
+        tr
+          td Статус
+          td= state
+        tr
+          td stdout
+          td
+            pre= stdout
+        tr
+          td stderr
+          td
+            pre= stderr

@@ -6,10 +6,10 @@ html
     a(href="/agents") Агенты
     br
     span(style="display: inline-block; width: 100px;") Хеш 
-    input(id="hash" type="text" name="hash")
+    input(id="hash" type="text" name="hash" value="master")
     br
     span(style="display: inline-block; width: 100px;") Команда 
-    input(id="command" type="text" name="command")
+    input(id="command" type="text" name="command" value="npm test")
     br
     button(id="build_button" onClick="sendBuildCommand()") Запустить сборку
     table#build_table

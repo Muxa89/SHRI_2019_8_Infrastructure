@@ -143,7 +143,9 @@ interface Spawner {
   (): ChildProcessWithoutNullStreams;
 }
 
-const bufferizeSpawn = (prefix: string, spawner: Spawner) => (
+const bufferizeSpawn = (
+  prefix: string,
+  spawner: Spawner,
   runResult?: RunResult
 ) =>
   new Promise((res, rej) => {
@@ -185,19 +187,31 @@ const bufferizeSpawn = (prefix: string, spawner: Spawner) => (
 const gitClone = (command: BuildCommand, folder: string) =>
   bufferizeSpawn('CLONE', () => spawn('git', ['clone', command.path, folder]));
 
-const gitCheckout = (command: BuildCommand) =>
-  bufferizeSpawn('CHECKOUT', () => spawn('git', ['checkout', command.hash]));
+const gitCheckout = (
+  command: BuildCommand,
+  folder: string,
+  runResult: RunResult
+) =>
+  bufferizeSpawn(
+    'CHECKOUT',
+    () =>
+      spawn('git', ['checkout', command.hash], {
+        cwd: folder,
+      }),
+    runResult
+  );
 
 const run = (command: BuildCommand) => {
   let tempFolder;
   return (
     mkdtemp(`${__dirname}${sep}`)
       .then(folder => {
-        tempFolder = tempFolder;
-        return null;
+        tempFolder = folder;
       })
-      .then(gitClone(command, tempFolder))
-      .then(gitCheckout(command))
+      .then(() => gitClone(command, tempFolder))
+      .then((runResult: RunResult) =>
+        gitCheckout(command, tempFolder, runResult)
+      )
       // git checkout
       // return (
       //   new Promise((res, rej) => {
@@ -280,7 +294,7 @@ const run = (command: BuildCommand) => {
 };
 
 const sendBuildResult = (buildResult: BuildResult) => {
-  console.log(`Sending build result: ${buildResult}`);
+  console.log(`Sending build result: ${JSON.stringify(buildResult)}`);
 
   axios.post(
     `http://localhost:${config.hostPort}/notify_build_result`,
