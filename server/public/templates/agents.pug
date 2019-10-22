@@ -1,0 +1,22 @@
+html
+  head
+    title Зарегистрированные агенты
+  body
+    a(href="/") Назад
+    br
+    a(href="/agents") Обновить
+    table
+      thead
+        tr
+          th Номер
+          th Сервер
+          th Порт
+          th Статус
+      tbody
+        each agent, index in agents
+          tr
+            td= index
+            td= agent.host
+            td= agent.port
+            td= agent.state
+          

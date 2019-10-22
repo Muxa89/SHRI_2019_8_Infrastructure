@@ -15,6 +15,12 @@ function initUi(app: Application, executor: Executor): void {
     })
   );
 
+  app.get('/agents', (req, res) =>
+    res.render('agents.pug', {
+      agents: executor.getAgents(),
+    })
+  );
+
   app.use('/js', express.static('server/public/js'));
   app.use('/js', express.static('node_modules/axios/dist'));
 
