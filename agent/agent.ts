@@ -1,6 +1,11 @@
 import { config } from './config';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 
+import { promises } from 'fs';
+const { mkdtemp } = promises;
+
+import { sep } from 'path';
+
 import * as express from 'express';
 import axios from 'axios';
 
@@ -134,79 +139,137 @@ const runResultToBuildResult = (
   stderr: runResult.stderr.toString(),
 });
 
-const run = (command: BuildCommand) => {
-  // git checkout
-  return (
-    new Promise((res, rej) => {
-      const checkout = spawn('git', ['checkout', command.hash], {
-        cwd: command.path,
-      });
+interface Spawner {
+  (): ChildProcessWithoutNullStreams;
+}
 
-      const [stdout, stderr] = bufferizeChildProcessOutput(
-        checkout,
-        'CHECKOUT'
+const bufferizeSpawn = (prefix: string, spawner: Spawner) => (
+  runResult?: RunResult
+) =>
+  new Promise((res, rej) => {
+    if (!runResult) {
+      runResult = {
+        code: 0,
+        stdout: new StringBuffer(),
+        stderr: new StringBuffer(),
+      };
+    } else {
+      runResult = Object.assign({}, runResult);
+    }
+
+    const process = spawner();
+
+    const [stdout, stderr] = bufferizeChildProcessOutput(process, prefix);
+
+    process.on('close', code => {
+      runResult.code = code;
+      runResult.stdout.append(stdout.toString());
+      runResult.stderr.append(stderr.toString());
+
+      if (code !== 0) {
+        rej(runResult);
+      } else {
+        res(runResult);
+      }
+    });
+
+    process.on('error', err => {
+      runResult.code = -1;
+      runResult.stderr.append(
+        `${prefix} Error: ${err.name}\n${err.message}\n${err.stack}\n`
       );
+      rej(runResult);
+    });
+  });
 
-      checkout.on('close', code => {
-        const runResult: RunResult = {
-          code,
-          stdout,
-          stderr,
-        };
+const gitClone = (command: BuildCommand, folder: string) =>
+  bufferizeSpawn('CLONE', () => spawn('git', ['clone', command.path, folder]));
 
-        if (code !== 0) {
-          rej(runResult);
-        } else {
-          res(runResult);
-        }
-      });
-    })
-      // run provided command
-      .then(
-        (runResult: RunResult) =>
-          new Promise((res, rej) => {
-            const commandArr = command.command.split(' ');
+const gitCheckout = (command: BuildCommand) =>
+  bufferizeSpawn('CHECKOUT', () => spawn('git', ['checkout', command.hash]));
 
-            if (process.platform === 'win32') {
-              commandArr[0] = `${commandArr[0]}.cmd`;
-            }
+const run = (command: BuildCommand) => {
+  let tempFolder;
+  return (
+    mkdtemp(`${__dirname}${sep}`)
+      .then(folder => {
+        tempFolder = tempFolder;
+        return null;
+      })
+      .then(gitClone(command, tempFolder))
+      .then(gitCheckout(command))
+      // git checkout
+      // return (
+      //   new Promise((res, rej) => {
+      //     const checkout = spawn('git', ['checkout', command.hash], {
+      //       cwd: command.path,
+      //     });
 
-            const build = spawn(
-              commandArr[0],
-              commandArr.slice(1, commandArr.length),
-              {
-                cwd: command.path,
-              }
-            );
+      //     const [stdout, stderr] = bufferizeChildProcessOutput(
+      //       checkout,
+      //       'CHECKOUT'
+      //     );
 
-            const [stdout, stderr] = bufferizeChildProcessOutput(
-              build,
-              'BUILD'
-            );
+      //     checkout.on('close', code => {
+      //       const runResult: RunResult = {
+      //         code,
+      //         stdout,
+      //         stderr,
+      //       };
 
-            const newResult = Object.assign({}, runResult);
+      //       if (code !== 0) {
+      //         rej(runResult);
+      //       } else {
+      //         res(runResult);
+      //       }
+      //     });
+      //   })
+      //     // run provided command
+      //     .then(
+      //       (runResult: RunResult) =>
+      //         new Promise((res, rej) => {
+      //           const commandArr = command.command.split(' ');
 
-            build.on('close', code => {
-              newResult.code = code;
-              newResult.stdout.append(stdout.toString());
-              newResult.stderr.append(stderr.toString());
+      //           if (process.platform === 'win32') {
+      //             commandArr[0] = `${commandArr[0]}.cmd`;
+      //           }
 
-              if (code !== 0) {
-                rej(newResult);
-              } else {
-                res(newResult);
-              }
-            });
+      //           const build = spawn(
+      //             commandArr[0],
+      //             commandArr.slice(1, commandArr.length),
+      //             {
+      //               cwd: command.path,
+      //             }
+      //           );
 
-            build.on('error', err => {
-              newResult.code = -1;
-              newResult.stderr.append(
-                `BUILD Error: ${err.name}\n${err.message}\n${err.stack}\n`
-              );
-              rej(newResult);
-            });
-          })
-      )
+      //           const [stdout, stderr] = bufferizeChildProcessOutput(
+      //             build,
+      //             'BUILD'
+      //           );
+
+      //           const newResult = Object.assign({}, runResult);
+
+      //           build.on('close', code => {
+      //             newResult.code = code;
+      //             newResult.stdout.append(stdout.toString());
+      //             newResult.stderr.append(stderr.toString());
+
+      //             if (code !== 0) {
+      //               rej(newResult);
+      //             } else {
+      //               res(newResult);
+      //             }
+      //           });
+
+      //           build.on('error', err => {
+      //             newResult.code = -1;
+      //             newResult.stderr.append(
+      //               `BUILD Error: ${err.name}\n${err.message}\n${err.stack}\n`
+      //             );
+      //             rej(newResult);
+      //           });
+      //         })
+      //     )
       .then((runResult: RunResult) =>
         runResultToBuildResult(runResult, command)
       )
