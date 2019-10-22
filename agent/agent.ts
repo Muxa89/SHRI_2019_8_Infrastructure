@@ -273,8 +273,15 @@ const run = (command: BuildCommand) => {
 const sendBuildResult = (buildResult: BuildResult) => {
   console.log(`Sending build result: ${JSON.stringify(buildResult)}`);
 
-  axios.post(
-    `http://localhost:${config.hostPort}/notify_build_result`,
-    buildResult
-  );
+  axios
+    .post(
+      `http://localhost:${config.hostPort}/notify_build_result`,
+      buildResult,
+      { timeout: 1000 }
+    )
+    .catch(err => {
+      console.log(`Could not connect to server while sending build results.`);
+      console.log(`Shutting down...`);
+      process.exit(1);
+    });
 };
