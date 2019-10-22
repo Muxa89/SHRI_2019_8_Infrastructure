@@ -4,8 +4,28 @@ import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import * as express from 'express';
 import axios from 'axios';
 
-import { BuildState, BuildCommand, BuildResult } from '../server/executor';
 import { Readable } from 'stream';
+
+enum BuildState {
+  PENDING = 'pending',
+  IN_PROGRESS = 'inProgress',
+  SUCCESS = 'success',
+  FAILURE = 'failure',
+}
+
+export interface BuildCommand {
+  buildId: number;
+  path: string;
+  hash: string;
+  command: string;
+}
+
+export interface BuildResult {
+  buildId: number;
+  state: BuildState;
+  stdout: string;
+  stderr: string;
+}
 
 const app = express();
 app.use(express.json());
